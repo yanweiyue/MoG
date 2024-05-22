@@ -134,9 +134,11 @@ def train(model, optimizer, loader,device,use_topo=True):
     for data in loader:
         optimizer.zero_grad()
         data = data.to(device)
-        x, edge_index, edge_attr = data.x, data.edge_index, torch.zeros((data.edge_index.size(1),1),device=data.edge_index.device).float()
+        x, edge_index, edge_attr,topo_val = data.x, data.edge_index, torch.zeros((data.edge_index.size(1),1),device=data.edge_index.device).float(),data.topo_val
         if use_topo:
-            model.learner.get_topo_val(edge_index)
+            model.learner.topo_val = topo_val
+        else:
+            model.learner.topo_val = None
         mask,add_loss = model.learner(x = x, edge_index = edge_index, 
                                   temp = 0.05,edge_attr = edge_attr, training = True)  # masks:size(num_edges)
         out = model.gnn(data,mask)
@@ -157,10 +159,12 @@ def eval_acc(model, loader,device,use_topo=True):
     
     for data in loader:
         data = data.to(device)
-        x, edge_index, edge_attr = data.x, data.edge_index, torch.zeros((data.edge_index.size(1),1),device=data.edge_index.device).float()      
+        x, edge_index, edge_attr,topo_val = data.x, data.edge_index, torch.zeros((data.edge_index.size(1),1),device=data.edge_index.device).float(),data.topo_val  
         with torch.no_grad():
             if use_topo:
-                model.learner.get_topo_val(edge_index)
+                model.learner.topo_val = topo_val
+            else:
+                model.learner.topo_val = None
             mask,add_loss = model.learner(x = x, edge_index = edge_index, 
                                     temp = 0.05,edge_attr = edge_attr, training = True)  # masks:size(num_edges)
             pred = model.gnn(data,mask).max(1)[1]
@@ -177,10 +181,12 @@ def eval_loss(model, loader,device,use_topo=True):
     loss = 0
     for data in loader:
         data = data.to(device)
-        x, edge_index, edge_attr = data.x, data.edge_index, torch.zeros((data.edge_index.size(1),1),device=data.edge_index.device).float()
+        x, edge_index, edge_attr, topo_val = data.x, data.edge_index, torch.zeros((data.edge_index.size(1),1),device=data.edge_index.device).float(),data.topo_val
         with torch.no_grad():
             if use_topo:
-                model.learner.get_topo_val(edge_index)            
+                model.learner.topo_val =topo_val
+            else:
+                model.learner.topo_val = None
             mask,add_loss = model.learner(x = x, edge_index = edge_index, 
                                     temp = 0.05,edge_attr = edge_attr, training = True)  # masks:size(num_edges)
             out = model.gnn(data,mask)

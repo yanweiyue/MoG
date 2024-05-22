@@ -1,10 +1,10 @@
 import os
+import os.path as osp
 
 import torch
 import torch.nn.functional as F
-import torch_geometric.transforms as T
+from ogb.nodeproppred import Evaluator
 
-from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
 import numpy as np
 import random
 
@@ -70,8 +70,8 @@ def main():
     fix_seed(args['seed'])
     device = f"cuda:{args['device']}" if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
-    dataset = PygNodePropPredDataset(name='ogbn-arxiv',
-                                     transform=T.Compose([T.ToSparseTensor(),T.AddSelfLoops()]))
+    path= osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', 'arxiv.pt')
+    dataset = torch.load(path)
     data = dataset[0]
     data.adj_t = data.adj_t.to_symmetric()
     data = data.to(device)
@@ -85,7 +85,7 @@ def main():
     indices = torch.stack([row,col],dim=0)
     values = torch.ones((data.num_edges,),device=device) # ones
     shape = (data.num_nodes,data.num_nodes)
-
+    topo_val =data.topo_val
     
     for run in range(args['runs']):
         # define the model
@@ -96,7 +96,9 @@ def main():
         optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
         best_val_acc, best_test_acc, best_sparsity = 0, 0, 1
         if args['use_topo']:
-            model.learner.get_topo_val(edge_index = indices)
+            model.learner.topo_val = topo_val
+        else:
+            model.learner.topo_val = None
         for epoch in range(1, 1 + args['epochs']):
             # calculate the temperature of sparsity learner
             if (epoch-1) % args["temp_N"] == 0:

@@ -183,7 +183,7 @@ class MoE(nn.Module):
             expert_i_output = self.experts[i](x, edge_index,edge_attr,shape, temp, training)  # size:(num_edge)
             if self.topo_val is not None:
                 expert_i_output = expert_i_output*self.lam + self.topo_val[:,i%4]
-            expert_outputs.append(expert_i_output)  # list[Tensor]，每个tensor
+            expert_outputs.append(expert_i_output)
         expert_outputs = torch.stack(expert_outputs, dim=1) # shape=[num_edge, num_experts]
 
         # edge_gates: shape=[num_edge, num_experts]
@@ -230,24 +230,7 @@ class MoE(nn.Module):
         
         return mask, loss
 
-    
-    def get_topo_val(self,edge_index):
-        G=nx.DiGraph()
-        edges = edge_index.t().tolist()
-        G.add_edges_from(edges)
-        G = nk.nxadapter.nx2nk(G)
-        G.indexEdges()
-        lds = nk.sparsification.LocalDegreeScore(G).run().scores()
-        ffs = nk.sparsification.ForestFireScore(G, 0.6, 5.0).run().scores()
-        triangles = nk.sparsification.TriangleEdgeScore(G).run().scores()
-        # Initialize the algorithm
-        lss = nk.sparsification.LocalSimilarityScore(G, triangles).run().scores()
-        scan = nk.sparsification.SCANStructuralSimilarityScore(G, triangles).run().scores()
-        
-        topo_val = torch.tensor([lds,ffs,lss,scan],device = edge_index.device).t()
 
-        normalized_features = F.normalize(topo_val,dim=0)
-        self.topo_val = normalized_features
 
 def min_max_normalization(tensor):
     min_val = torch.min(tensor)

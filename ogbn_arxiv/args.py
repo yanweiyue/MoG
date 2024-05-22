@@ -28,7 +28,7 @@ def parser_loader():
     parser.add_argument('--expert_select',type=int,default=3)
     parser.add_argument('--k_list', nargs='+', type=float)
     parser.add_argument('--lam',type=float,default=1e-1)
-    parser.add_argument('--use_topo',default=False,action="store_true")
+    parser.add_argument('--use_topo',default=True,action="store_true")
     
     args = vars(parser.parse_args())
     assert len(args['k_list']),"The sparsity of each sparsifier must be specified"

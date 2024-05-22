@@ -230,23 +230,3 @@ class MoE(nn.Module):
         self.k_per_node = k_per_node
         
         return mask, loss
-
-    def get_topo_val(self,edge_index):
-        G=nx.DiGraph()
-        edges = edge_index.t().tolist()
-        G.add_edges_from(edges)
-        G = nk.nxadapter.nx2nk(G)
-        G.indexEdges()
-        lds = nk.sparsification.LocalDegreeScore(G).run().scores()
-        ffs = nk.sparsification.ForestFireScore(G, 0.6, 5.0).run().scores()
-        triangles = nk.sparsification.TriangleEdgeScore(G).run().scores()
-        # Initialize the algorithm
-        lss = nk.sparsification.LocalSimilarityScore(G, triangles).run().scores()
-        scan = nk.sparsification.SCANStructuralSimilarityScore(G, triangles).run().scores()
-        
-        topo_val = torch.tensor([lds,ffs,lss,scan],device = edge_index.device).t()
-
-        normalized_features = F.normalize(topo_val,dim=0)
-        self.topo_val = normalized_features
-
-        

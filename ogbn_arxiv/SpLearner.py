@@ -85,8 +85,7 @@ class SpLearner(nn.Module):
         y = self.gumbel_softmax_sample(indices,pi_values, temperature, shape, training) # sparse score
         sparse_indices = y.coalesce().indices()
         sparse_values = y.coalesce().values()
-        
-        # TODO
+
         node_idx, num_edges_per_node = sparse_indices[0].unique(return_counts=True)
         k_edges_per_node = (num_edges_per_node.float() * self.k).round().long()
         k_edges_per_node = torch.where(k_edges_per_node>0,k_edges_per_node,torch.ones_like(k_edges_per_node,device=k_edges_per_node.device))

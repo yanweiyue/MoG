@@ -1,14 +1,13 @@
 import torch
 from torch_geometric.loader import DataLoader
 import torch.optim as optim
-
-import torch_geometric.transforms as T
+import os.path as osp
 from tqdm import tqdm
 from args import parser_loader
 import numpy as np
 from torch_geometric.utils import degree
 ### importing OGB
-from ogb.graphproppred import PygGraphPropPredDataset, Evaluator
+from ogb.graphproppred import Evaluator
 
 from MoG import MoG
 
@@ -23,9 +22,11 @@ def train(model, device, loader, optimizer, task_type,temp,use_topo=False):
         if batch.x.shape[0] == 1 or batch.batch[-1] == 0:
             pass
         else:
-            x, edge_index, edge_attr,batch_batch = batch.x.float(), batch.edge_index, batch.edge_attr, batch.batch
+            x, edge_index, edge_attr,batch_batch,topo_val = batch.x.float(), batch.edge_index, batch.edge_attr, batch.batch,batch.topo_val
             if use_topo:
-                model.learner.get_topo_val(edge_index)
+                model.learner.topo_val = topo_val
+            else:
+                model.learner.topo_val = None
             mask,add_loss = model.learner(x = x, edge_index = edge_index, 
                                   temp = temp,edge_attr = edge_attr, training = True)  # masks:size(num_edges)
             pred = model.gnn(batch,mask)
@@ -51,14 +52,15 @@ def eval(model, device, loader, evaluator,temp,use_topo=False):
     
     for step, batch in enumerate(tqdm(loader, desc="Iteration")):
         batch = batch.to(device)
-        x, edge_index, edge_attr, batch_batch = batch.x.float(), batch.edge_index, batch.edge_attr, batch.batch
-
+        x, edge_index, edge_attr,batch_batch,topo_val = batch.x.float(), batch.edge_index, batch.edge_attr, batch.batch,batch.topo_val
         if batch.x.shape[0] == 1:
             pass
         else:
             with torch.no_grad():
                 if use_topo:
-                    model.learner.get_topo_val(edge_index)
+                    model.learner.topo_val = topo_val
+                else:
+                    model.learner.topo_val = None
                 mask,add_loss = model.learner(x = x, edge_index = edge_index, 
                                   temp = temp,edge_attr = edge_attr, training = False)  # masks:size(num_edges)
                 pred = model.gnn(batch,mask)
@@ -91,7 +93,8 @@ def main():
     device = torch.device("cuda:" + args['device']) if torch.cuda.is_available() else torch.device("cpu")
 
     ### automatic dataloading and splitting
-    dataset = PygGraphPropPredDataset(name = args['dataset'],transform=T.AddSelfLoops('edge_attr'))
+    path= osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', args['dataset'])
+    dataset = torch.load(path+'.pt')
 
     if args['feature'] == 'full':
         pass 

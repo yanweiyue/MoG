@@ -21,7 +21,7 @@ class NormalizedDegree:
 
 def get_dataset(name, sparse=True, cleaned=False):
     path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', name)
-    dataset = TUDataset(path, name, cleaned=cleaned)
+    dataset = torch.load(path+'.pt')
     dataset.data.edge_attr = torch.ones((dataset.data.edge_index.size(1),1)).float()
 
     if dataset.data.x is None:

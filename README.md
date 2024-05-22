@@ -28,7 +28,3 @@ python main.py --k_list 0.8 0.5 0.4 --expert_select 2
 python main.py --k_list 0.6 0.3 0.2 --expert_select 2
 python main.py --k_list 0.35 0.1 0.1 --expert_select 2
 ```
-
-
-
-# MoG

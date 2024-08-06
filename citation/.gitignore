@@ -1,0 +1,7 @@
+*.png
+*.pt
+data
+dataset
+.ipynb_checkpoints
+__pycache__
+*.ipynb
